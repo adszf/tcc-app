@@ -1,0 +1,32 @@
+services:
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodata:/data/db
+  api:
+    container_name: api-tccapp
+    image: tccapp:latest
+    environment:
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=AnalysisData
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      - mongodb
+    ports:
+      - 8080:8080
+    volumes:
+      - input:/opt/app/input
+      - output:/opt/app/output
+    restart: always   
+
+volumes:
+  input:
+  output:
+  mongodata:
