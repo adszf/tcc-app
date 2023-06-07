@@ -25,38 +25,68 @@ public class Utilities {
     public Instances csvToArff(String jsonStringObject, String className) throws IOException {
         Object data = new Object();
         Date date = new Date();
-        // format date in mm-dd-yyyy hh:mm:ss format
-        SimpleDateFormat  sdf = new SimpleDateFormat("MM-dd-yyyy_hhmmss");
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy_hhmmss");
         String strDate = sdf.format(date);
-        System.out.println("formatted date in MM-dd-yyyy_hhmmss : " + strDate);
+        File currentDir = new File("").getAbsoluteFile();
+        /*
+         * System.out.println( new File("").getAbsolutePath());
+         * System.out.println( new File("").getAbsoluteFile());
+         * System.out.println( new File("").getCanonicalPath());
+         */
+        /*
+         * String s = "name: " + System.getProperty("os.name");
+         * s += ", version: " + System.getProperty("os.version");
+         * s += ", arch: " + System.getProperty("os.arch");
+         * System.out.println("OS=" + s);
+         * System.out.println("Working Directory = " + System.getProperty("user.dir"));
+         */
+
+        /*
+         * Path currentRelativePath = Paths.get("");
+         * String path = currentRelativePath.toAbsolutePath().toString();
+         * System.out.println("Current absolute path is: " + path);
+         */
+        String path = OSValidator.getOS() == "win" ? currentDir.getAbsolutePath()
+                : OSValidator.getOS() == "uni" ? "/opt/app" : "";
         try {
-            File fileInputCsv = new File("C:\\Users\\adson\\Desktop\\input\\" + className +"-"+ strDate +".csv");
-            if (!fileInputCsv.exists()) {
-                JsonNode jsonTree = new ObjectMapper().readTree(jsonStringObject);
-                Builder csvSchemaBuilder = CsvSchema.builder();
-                JsonNode firstObject = jsonTree.elements().next();
-                firstObject.fieldNames().forEachRemaining(fieldName -> {
-                    csvSchemaBuilder.addColumn(fieldName);
-                });
-                CsvSchema csvSchema = csvSchemaBuilder.build().withHeader();
-                CsvMapper csvMapper = new CsvMapper();
-                csvMapper.writerFor(JsonNode.class)
-                        .with(csvSchema)
-                        .writeValue(fileInputCsv, jsonTree);
-            }
-            // load CSV
-            CSVLoader loader = new CSVLoader();
-            loader.setSource(fileInputCsv);
-            data = loader.getDataSet();
-            // save ARFF
-            ArffSaver saver = new ArffSaver();
-            saver.setInstances((Instances) data);
-            saver.setFile(new File("C:\\Users\\adson\\Desktop\\output\\" + className + ".arff"));
-            saver.writeBatch();
-            // .arff file will be created in the output location
+            if (!path.isBlank()) {
+                File fileInputCsv = new File(path + "/input/" + className + "-" + strDate + ".csv");
+                if (fileInputCsv.createNewFile()) {
+                    JsonNode jsonTree = new ObjectMapper().readTree(jsonStringObject);
+                    Builder csvSchemaBuilder = CsvSchema.builder();
+                    JsonNode firstObject = jsonTree.elements().next();
+                    firstObject.fieldNames().forEachRemaining(fieldName -> {
+                        csvSchemaBuilder.addColumn(fieldName);
+                    });
+                    CsvSchema csvSchema = csvSchemaBuilder.build().withHeader();
+                    CsvMapper csvMapper = new CsvMapper();
+                    csvMapper.writerFor(JsonNode.class)
+                            .with(csvSchema)
+                            .writeValue(fileInputCsv, jsonTree);
+                } else {
+                    throw new IOException("ERRO fileInputCsv");
+                }
+                // load CSV
+                CSVLoader loader = new CSVLoader();
+                loader.setSource(fileInputCsv);
+                data = loader.getDataSet();
+                // save ARFF
+                ArffSaver saver = new ArffSaver();
+                File fileOutputArff = new File(path + "/output/" + className + "-" + strDate + ".arff");
+                if (fileOutputArff.createNewFile()) {
+                    saver.setInstances((Instances) data);
+                    saver.setFile(fileOutputArff);
+                    saver.writeBatch();
+                } else {
+                    throw new IOException("ERRO fileOutputArff");
+                }
+            } else {
+                throw new IOException("ERRO Path - Caminho de geração de arquivos não reconhecido!");
+            } // .arff file will be created in the output location
         } catch (Exception e) {
-            // TODO: handle exception
+            throw e;
         }
         return (Instances) data;
     }
+
 }
