@@ -22,7 +22,7 @@ public class Utilities {
 
     /* String fileName = "src/main/resources/items.arff"; */
 
-    public Instances csvToArff(String jsonStringObject, String className) throws IOException {
+    public Instances csvToArff(String jsonStringObject, String className) throws Exception {
         Object data = new Object();
         Date date = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy_hhmmss");
@@ -46,8 +46,8 @@ public class Utilities {
          * String path = currentRelativePath.toAbsolutePath().toString();
          * System.out.println("Current absolute path is: " + path);
          */
-        String path = OSValidator.getOS() == "win" ? currentDir.getAbsolutePath()
-                : OSValidator.getOS() == "uni" ? "/opt/app" : "";
+        String path = OSValidator.getOS().equals("win") ? currentDir.getAbsolutePath()
+                : OSValidator.getOS().equals("uni") ? "/opt/app" : "";
         try {
             if (!path.isBlank()) {
                 File fileInputCsv = new File(path + "/input/" + className + "-" + strDate + ".csv");
@@ -55,9 +55,7 @@ public class Utilities {
                     JsonNode jsonTree = new ObjectMapper().readTree(jsonStringObject);
                     Builder csvSchemaBuilder = CsvSchema.builder();
                     JsonNode firstObject = jsonTree.elements().next();
-                    firstObject.fieldNames().forEachRemaining(fieldName -> {
-                        csvSchemaBuilder.addColumn(fieldName);
-                    });
+                    firstObject.fieldNames().forEachRemaining(csvSchemaBuilder::addColumn);
                     CsvSchema csvSchema = csvSchemaBuilder.build().withHeader();
                     CsvMapper csvMapper = new CsvMapper();
                     csvMapper.writerFor(JsonNode.class)
@@ -89,4 +87,5 @@ public class Utilities {
         return (Instances) data;
     }
 
+    
 }
