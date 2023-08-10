@@ -3,35 +3,32 @@ package com.uninter.tcc.controller;
 import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import com.uninter.tcc.service.CreditAnalysis;
+import com.uninter.tcc.service.Analysis;
 
 @RestController
+@RequestMapping("/analysis")
 public class AnalysisController {
-    @Autowired
-    private CreditAnalysis creditAnalysis;
+	@Autowired
+	private Analysis creditAnalysis;
 
-    @GetMapping("memory-status")
-    public ArrayList<String> getMemoryStatistics() {
-        ArrayList<String> parametrosMemory = new ArrayList<String>();
-        parametrosMemory.add("TOTAL MEMORY: "+String.valueOf(Runtime.getRuntime().totalMemory()));
-        parametrosMemory.add("MAX MEMORY: "+String.valueOf(Runtime.getRuntime().maxMemory()));
-        parametrosMemory.add("FREE MEMORY: "+String.valueOf(Runtime.getRuntime().freeMemory()));
-        return parametrosMemory;
-    }
+	@GetMapping("/creditScore")
+	public ResponseEntity<String> credit(
+			@RequestParam(name = "cpf", required = true) String cpf) {
+		ResponseEntity<String> result = null;
+		try {
+			Long cpfNumber = Long.valueOf(cpf);
+			result = new ResponseEntity<>(creditAnalysis.creditScoreAnalysis(cpfNumber), new HttpHeaders(),HttpStatus.OK);
+		} catch (Exception e) {
+			result = new ResponseEntity<>(e.getMessage(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return result;
 
-    @GetMapping("/creditScore")
-    public String credit(@RequestParam(name = "cpf", required = true/* defaultValue = "World" */) String cpf) {
-        try {
-            Long cpfNumber = Long.valueOf(cpf);
-            creditAnalysis.creditScoreAnalysis(cpfNumber);
-
-        } catch (Exception e) {
-            System.out.println(e.toString());
-        }
-        return cpf;
-
-    }
+	}
 }

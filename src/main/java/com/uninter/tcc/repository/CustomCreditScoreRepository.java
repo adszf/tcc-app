@@ -4,7 +4,7 @@ import java.util.List;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
-import com.uninter.tcc.domain.entity.CustomCreditScoreEntity;
+import com.uninter.tcc.model.CustomCreditScoreEntity;
 
 @Repository
 public interface CustomCreditScoreRepository extends MongoRepository<CustomCreditScoreEntity, String> {

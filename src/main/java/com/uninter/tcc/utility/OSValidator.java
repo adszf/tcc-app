@@ -1,4 +1,4 @@
-package com.uninter.tcc.utils;
+package com.uninter.tcc.utility;
 
 public class OSValidator {
  

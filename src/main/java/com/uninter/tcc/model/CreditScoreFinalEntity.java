@@ -1,9 +1,8 @@
-package com.uninter.tcc.domain.entity;
-
-import javax.persistence.Id;
+package com.uninter.tcc.model;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import jakarta.persistence.Id;
 import lombok.Data;
 @Data
 @Document(collection = "Credit_Score_Final")
