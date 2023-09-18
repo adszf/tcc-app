@@ -1,6 +1,8 @@
 package com.uninter.tcc.service;
 
+import com.uninter.tcc.dto.kafka.send.SendRequestDto;
+
 public interface Kafka {
 
-	String send(String type,Integer quantity) throws Exception;
+	String send(SendRequestDto request) throws Exception;
 }

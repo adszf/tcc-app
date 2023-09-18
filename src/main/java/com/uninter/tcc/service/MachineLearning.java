@@ -10,9 +10,9 @@ import weka.core.Instances;
 
 public interface MachineLearning {
 
-	Instances instances(String jsonStringObject, String className,String classIndex) throws Exception;
+	Instances instances(String jsonStringObject, String className,String classIndex,boolean onlyModel,String id) throws Exception;
 
-	FilteredClassifier filter(Object classMl, String options, String remove) throws Exception;
+	FilteredClassifier filter(String classMl, String optionsClassifier, List<String> optionsFilter) throws Exception;
 
 	List<List<Instance>> partitions(Integer partitionSize, Instances instances) throws Exception;
 
@@ -23,4 +23,6 @@ public interface MachineLearning {
 	Instance createAnalysis(Instances instances,Object client,String classForPrediction) throws Exception;
 	
 	String analyzeSet(Instance newIstanceToAnalyze,List<Classifier> populateClassifier) throws Exception;
+
+    String requestTrain(String idContext, Integer partitionSize, String classnameClassifier, String optClassifier, List<String> optFilter, String classIndex) throws Exception;
 }

@@ -5,55 +5,52 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.repository.support.MongoRepositoryFactory;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.uninter.tcc.model.CreditScoreFinalEntity;
-import com.uninter.tcc.model.CustomCreditScoreEntity;
-import com.uninter.tcc.repository.CreditScoreFinalRepository;
-import com.uninter.tcc.repository.CreditScoreRepository;
-import com.uninter.tcc.repository.CustomCreditScoreRepository;
-import com.uninter.tcc.utility.Utilities;
+import com.uninter.tcc.dto.kafka.send.SendRequestDto;
+import com.uninter.tcc.model.ClassifierEntity;
+import com.uninter.tcc.repository.ClassifierRepository;
+import com.uninter.tcc.utility.ClassifierIdGenerator;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.Data;
 import weka.classifiers.Classifier;
-import weka.classifiers.functions.Logistic;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SerializationHelper;
-import weka.core.logging.Logger;
-
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import org.apache.commons.codec.binary.Base64;
+import org.modelmapper.ModelMapper;
 
 import java.util.stream.IntStream;
 
 @Service
+@Data
 public class KafkaImpl implements Kafka {
 
 	@Autowired
-	private CreditScoreFinalRepository creditScoreFinalRepository;
+	private MongoTemplate mongoTemplate;
+
+	@Autowired
+	private ClassifierRepository classifierRepository;
 
 	@Autowired
 	MachineLearning machineLearning;
@@ -62,110 +59,168 @@ public class KafkaImpl implements Kafka {
 	private KafkaTemplate<String, String> kafkaTemplate;
 
 	@Autowired
-	@Qualifier("taskExecutor")
+	@Qualifier("taskExecutorKafka")
 	private ExecutorService executorService;
 
-	private final Utilities custom = new Utilities();
+	@Autowired
+	ClassifierIdGenerator generator;
+
 	private final ObjectMapper mapper = new ObjectMapper();
-	private static CompletableFuture<Void> execute;
-	private static List<CompletableFuture<?>> allfutures = new ArrayList<>();
+	private final ModelMapper modelMapper = new ModelMapper();
+	private static List<CompletableFuture<?>> allfuturesPopulate = new ArrayList<>();
+	private static List<CompletableFuture<?>> allFuturesMountClassifier = new ArrayList<>();
 	private static final AtomicInteger number = new AtomicInteger(0); // Número da página inicial
 	private boolean hasMoreDocuments = true;
-	//static final ReentrantLock counterLock = new ReentrantLock(true); // enable fairness policy
-
-	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(KafkaImpl.class);
+	private String context;
+	private CompletableFuture<Void> listClassifierMount;
+	private CompletableFuture<Void> listPagesMongoFuture;
+	private List<List<Instance>> lists = new ArrayList<>();
+	private Instances instanceToUse;
+	private List<Object> populate = new ArrayList<>();
+	private boolean status = true;
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(KafkaImpl.class);
 
 	@Override
-	public String send(String type, Integer quantity) throws Exception {
-		int size = quantity; // Define o tamanho da página (quantidade de documentos por página)
-		Boolean status = true;
-		Date date = new Date();
-		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy_hhmmss");
-		String strDate = sdf.format(date);
-		if (!hasMoreDocuments) {
-			status = false;
-		}
-		while (hasMoreDocuments) {
+	public String send(SendRequestDto request) throws Exception {
+		try {
+			Class<?> clazzClassname = Class.forName("com.uninter.tcc.model." + request.getType() + "Entity");
+			Constructor<?> constructor = clazzClassname.getConstructor();
+			var createClassname = constructor.newInstance();
+			Class<?> repositoryClass = Class.forName("com.uninter.tcc.repository." + request.getType() + "Repository");
+			int size = request.getQuantity(); // Define o tamanho da página (quantidade de documentos por página)
+			Date date = new Date();
+			SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+			String strDate = sdf.format(date);
+			if (!hasMoreDocuments) {
+				status = false;
 
-			Page<CreditScoreFinalEntity> creditFinalEntity = creditScoreFinalRepository
-					.findAll(PageRequest.of(number.get(), size));
-			log.info("NUMERO DA PAGINA: " + number.get());
-			log.info(String.valueOf(creditFinalEntity.getTotalPages()));
-			log.info(String.valueOf(creditFinalEntity.getPageable().getPageNumber()));
-			execute = CompletableFuture.runAsync(() -> {
-				try {
-					String jsonStringObject = mapper.writeValueAsString(creditFinalEntity.getContent());
-					// log.info("LISTA DO OBJETO: "+ jsonStringObject);
-					String className = new CreditScoreFinalEntity().getClass().getSimpleName();
-					Logistic logistic = new Logistic();
-					Instances instanceToUse = machineLearning.instances(jsonStringObject, className, "creditScore");
-					FilteredClassifier filteredClassifier = machineLearning.filter(logistic, "", "-R first");
-					IntStream.range(0, 10).forEach(currentOfFolder -> {
-						try {
-
-							Classifier classifier = machineLearning.build(10, instanceToUse, currentOfFolder,
-									filteredClassifier, instanceToUse);
-							// Serializar o classificador para um array de bytes
-							ByteArrayOutputStream baos = new ByteArrayOutputStream();
-							SerializationHelper.write(baos, classifier);
-							byte[] serializedClassifierBytes = baos.toByteArray();
-							// Converter o array de bytes para uma representação Base64 (string)
-							String serializedClassifier = Base64.encodeBase64String(serializedClassifierBytes);
-
-							// Desserializar o classificador a partir do array de bytes
-							// Converter a representação Base64 de volta para um array de bytes
-							// byte[] serializedClassifierBytesConvert =
-							// Base64.decodeBase64(serializedClassifier);
-							// Classifier classifierToByte = (Classifier) SerializationHelper.read( new
-							// ByteArrayInputStream(serializedClassifierBytesConvert));
-
-							// log.info("CURRENT IN NUMBER OF FOLDERS: " + currentOfFolder + "\n THREAD: "+
-							// Thread.currentThread().getName());
-							kafkaTemplate.send("classifiers", serializedClassifier);
-							if (executorService.awaitTermination(5, TimeUnit.SECONDS)) {
-								executorService.shutdown();
+			} else {
+				context = generator.generateId(request.getContext());
+			}
+			while (hasMoreDocuments) {
+				populateObjects(repositoryClass, size);
+			}
+			CompletableFuture.allOf(allfuturesPopulate.toArray(new CompletableFuture[allfuturesPopulate.size()]))
+					.thenRun(() -> {
+						if (status) {
+							logger.info("OK POPULATE");
+							try {
+								mountObjects(createClassname, request, strDate);
+							} catch (Exception e) {
+								logger.error("An error occurred:", e);
+								throw new RuntimeException(e);
 							}
-						} catch (Exception e) {
-							e.printStackTrace();
-							return;
 						}
-					});
-
-				} catch (InterruptedException | ExecutionException InterruptedExecutionException) {
-					log.info(InterruptedExecutionException.getMessage());
-					throw new RuntimeException(InterruptedExecutionException);
-				} catch (JsonProcessingException jsonException) {
-					log.info(jsonException.getMessage());
-					// jsonException.printStackTrace();
-				} catch (Exception exception) {
-					log.info(exception.getMessage());
-					// exception.printStackTrace();
-				}
-
-			}, executorService);
-
-			number.incrementAndGet();
-			hasMoreDocuments = creditFinalEntity.hasNext();
-			// log.info(String.valueOf(hasMoreDocuments));
-			allfutures.add(execute);
+					}).completeExceptionally(new RuntimeException("failed!"));
+		} catch (Exception e) {
+			Thread.currentThread().interrupt();
+			logger.error("Unable to send message:", e);
+			clear();
 		}
-		CompletableFuture.allOf(allfutures.toArray(new CompletableFuture[allfutures.size()]))
-				.whenComplete((result, ex) -> {
-					if (ex == null) {
-						log.info("OK");
-						hasMoreDocuments = true;
-						// executorService.shutdownNow();
-						number.getAndSet(0);
+		return Boolean.TRUE.equals(status)
+				? "Enviado para fila do Kafka, esse é o id gerado: " + context
+				: "Em processo no MS, aguarde...";
+	}
 
-					} else {
-						log.info("Unable to send message: " + ex.getMessage());
-						hasMoreDocuments = true;
-						number.getAndSet(0);
-						// executorService.shutdownNow();
+	private void mountObjects(Object createClassname, SendRequestDto request, String strDate) throws Exception {
+		try {
+			instanceToUse = machineLearning.instances(
+					mapper.writeValueAsString(populate.toArray()),
+					createClassname.getClass().getSimpleName(),
+					request.getClassIndex(), false, context);
+			lists = machineLearning.partitions(request.getQuantity(), instanceToUse);
+			IntStream.range(0, lists.size()).forEach(indexOfList -> {
+				listClassifierMount = CompletableFuture.runAsync(() -> {
+					try {
+						classifierMount(lists.get(indexOfList), request, strDate, context,
+								indexOfList);
+					} catch (Exception e) {
+						logger.error("An error occurred:", e);
+						throw new RuntimeException(e);
 					}
-				});
 
-		return status == true ? "Enviado para fila do Kafka" : "Em processo no MS, aguarde...";
+				}, executorService);
+				allFuturesMountClassifier.add(listClassifierMount);
+			});
+			CompletableFuture
+					.allOf(allFuturesMountClassifier
+							.toArray(new CompletableFuture[allFuturesMountClassifier.size()]))
+					.whenComplete((resultMountClassifier, exMountClassifier) -> {
+						logger.info("OK MOUNT");
+						clear();
+					});
+		} catch (Exception e) {
+			logger.error("An error occurred:", e);
+			throw new RuntimeException(e);
+		}
+	}
+
+	private void classifierMount(List<Instance> list, SendRequestDto request, String strDate, String context,
+			int indexOfList) throws Exception {
+		FilteredClassifier filteredClassifier = machineLearning.filter(request.getClassnameClassifier(),
+				request.getOptClassifier(), request.getOptFilter());
+		Integer numFolds = list.size() <= 10 ? list.size() : 10;
+		IntStream.range(0, numFolds).forEach(currentOfFolder -> {
+			try {
+				logger.info("INDEX_OF_LIST: " + String.valueOf(indexOfList));
+				Classifier classifier = machineLearning.build(numFolds, list, currentOfFolder, filteredClassifier,
+						instanceToUse);
+				// Serializar o classificador para um array de bytes
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				SerializationHelper.write(baos, classifier);
+				byte[] serializedClassifierBytes = baos.toByteArray();
+				// Converter o array de bytes para uma representação Base64 (string)
+				String serializedClassifier = Base64.encodeBase64String(serializedClassifierBytes);
+				ClassifierEntity entity = modelMapper.map(request, ClassifierEntity.class);
+				entity.setDate(strDate);
+				entity.setClassifierCompact(serializedClassifier);
+				entity.setContext(context);
+				kafkaTemplate.send("classifiers", mapper.writeValueAsString(entity));
+				if (executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+					executorService.shutdown();
+				}
+			} catch (Exception e) {
+				logger.error("An error occurred:", e);
+				throw new RuntimeException(e);
+			}
+		});
+
+	}
+
+	private void populateObjects(Class<?> repositoryClass, int size) throws Exception {
+		MongoRepositoryFactory factory = new MongoRepositoryFactory(mongoTemplate);
+		var repository = factory.getRepository(repositoryClass);
+		Pageable pageable = PageRequest.of(number.get(), size);
+		Method findMethod = repositoryClass.getMethod("findAll", Pageable.class);
+		Page<?> page = (Page<?>) findMethod.invoke(repository, pageable);
+		listPagesMongoFuture = CompletableFuture.runAsync(() -> {
+			try {
+				populate.addAll(page.getContent());
+			} catch (Exception exception) {
+				logger.error(exception.getMessage());
+				Thread.currentThread().interrupt();
+			}
+		}, executorService);
+		number.incrementAndGet();
+		hasMoreDocuments = page.hasNext();
+		allfuturesPopulate.add(listPagesMongoFuture);
+	}
+
+	void clear() {
+		status = true;
+		hasMoreDocuments = true;
+		number.getAndSet(0);
+		instanceToUse = null;
+		populate.clear();
+	}
+
+	@KafkaListener(topics = "classifiers")
+	private void listen(
+			@Payload String message,
+			@Header(KafkaHeaders.OFFSET) int offset) throws Exception {
+		ClassifierEntity entity = mapper.readValue(message, ClassifierEntity.class);
+		classifierRepository.save(entity);
+		logger.info(entity.getId());
 	}
 
 }

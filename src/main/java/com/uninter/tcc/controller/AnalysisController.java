@@ -1,7 +1,5 @@
 package com.uninter.tcc.controller;
 
-import java.util.ArrayList;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,11 +18,37 @@ public class AnalysisController {
 
 	@GetMapping("/creditScore")
 	public ResponseEntity<String> credit(
-			@RequestParam(name = "cpf", required = true) String cpf) {
+			@RequestParam(name = "cpf", required = true) String cpf,
+			@RequestParam(name = "idContext", required = true) String idContext,
+			@RequestParam(name = "sizeOfEachPage", required = false, defaultValue = "5") String sizeOfEachPage,
+			@RequestParam(name = "classForPredict", required = true) String classPredict) {
 		ResponseEntity<String> result = null;
 		try {
 			Long cpfNumber = Long.valueOf(cpf);
-			result = new ResponseEntity<>(creditAnalysis.creditScoreAnalysis(cpfNumber), new HttpHeaders(),HttpStatus.OK);
+			result = new ResponseEntity<>(
+					creditAnalysis.creditScoreAnalysis(cpfNumber, idContext, sizeOfEachPage, classPredict),
+					new HttpHeaders(),
+					HttpStatus.OK);
+		} catch (Exception e) {
+			result = new ResponseEntity<>(e.getMessage(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return result;
+
+	}
+
+	@GetMapping("/behaviorScore")
+	public ResponseEntity<String> behavior(
+			@RequestParam(name = "cpf", required = true) String cpf,
+			@RequestParam(name = "idContext", required = true) String idContext,
+			@RequestParam(name = "sizeOfEachPage", required = false, defaultValue = "5") String sizeOfEachPage,
+			@RequestParam(name = "classForPredict", required = true) String classPredict) {
+		ResponseEntity<String> result = null;
+		try {
+			Long cpfNumber = Long.valueOf(cpf);
+			result = new ResponseEntity<>(
+					creditAnalysis.behaviorScoreAnalysis(cpfNumber, idContext, sizeOfEachPage, classPredict),
+					new HttpHeaders(),
+					HttpStatus.OK);
 		} catch (Exception e) {
 			result = new ResponseEntity<>(e.getMessage(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}

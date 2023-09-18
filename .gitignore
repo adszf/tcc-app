@@ -4,6 +4,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### FILES OF INPUT AND OUTPUT FOLDERS IN PROJECT ###
+*.csv
+*.arff
+
 ### STS ###
 .apt_generated
 .classpath

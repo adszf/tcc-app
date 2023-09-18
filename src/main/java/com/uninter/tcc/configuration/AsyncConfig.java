@@ -28,8 +28,13 @@ public class AsyncConfig implements AsyncConfigurer {
 	@Value(value = "${fixed.thread.pool}")
 	private String fixedThreadPool;
 
-	@Bean("taskExecutor")
-	public ExecutorService fixedThreadPool() {
+	@Bean("taskExecutorKafka")
+	public ExecutorService executorKafka() {
+		return Executors.newFixedThreadPool(Integer.valueOf(fixedThreadPool));
+	}
+
+	@Bean("taskExecutorAnalysis")
+	public ExecutorService executorAnalysis() {
 		return Executors.newFixedThreadPool(Integer.valueOf(fixedThreadPool));
 	}
 
