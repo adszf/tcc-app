@@ -117,28 +117,28 @@ public class MachineLearningImpl implements MachineLearning {
 			logger.info("______INICIO______");
 			List<Instance> instances = partitions.get(i);
 			Integer numFolds = instances.size() <= 10 ? instances.size() : 10;
-			logger.info(String.valueOf((partitions.get(i)).size()));
-			logger.info(String.valueOf(i));
+			logger.info("{}", partitions.get(i).size());
+			logger.info("{}", String.valueOf(i));
 			// evaluation.crossValidateModel(fc, instances, 5, new Random(1));
 			cross(instances, numFolds, filteredClassifier, evaluationActual, instancesModel);
-			logger.info("CORRETO: " + evaluationActual.correct());
-			logger.info("INCORRETO: " + evaluationActual.incorrect());
-			logger.info("NAO CLASSIFICADO: " + evaluationActual.unclassified());
-			logger.info("PORCENTAGEM CORRETA: " + evaluationActual.pctCorrect());
-			logger.info("PORCENTAGEM INCORRETA: " + evaluationActual.pctIncorrect());
-			logger.info("PORCENTAGEM NAO CLASSIFICADA: " + evaluationActual.pctUnclassified());
+			logger.info("CORRETO: {}", evaluationActual.correct());
+			logger.info("INCORRETO: {}", evaluationActual.incorrect());
+			logger.info("NAO CLASSIFICADO: {}", evaluationActual.unclassified());
+			logger.info("PORCENTAGEM CORRETA: {}", evaluationActual.pctCorrect());
+			logger.info("PORCENTAGEM INCORRETA: {}", evaluationActual.pctIncorrect());
+			logger.info("PORCENTAGEM NAO CLASSIFICADA: {}", evaluationActual.pctUnclassified());
 			logger.info("______FIM______");
 		}
 		evaluationStatus.append(evaluationActual.toSummaryString(true)).append(evaluationActual.toClassDetailsString())
 				.append(evaluationActual.toMatrixString("=== Confusion Matrix ==="));
-		logger.info(evaluationStatus.toString());
+		logger.info("{}",evaluationStatus.toString());
 		return evaluationActual;
 	}
 
 	@Override
 	public Classifier build(Integer numFolds, List<Instance> instance, Integer sequence,
 			FilteredClassifier filteredClassifier, Instances instanceToUse) throws Exception {
-		logger.info("SEQUENCE: " + sequence.toString());
+		logger.info("SEQUENCE: {}",sequence);
 		Instances data = new Instances(instanceToUse, 0);
 		data.addAll(instance);
 		data.randomize(new Random(1));

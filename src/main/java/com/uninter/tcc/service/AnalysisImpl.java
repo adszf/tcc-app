@@ -93,7 +93,7 @@ public class AnalysisImpl implements Analysis {
 
 			Page<CreditScoreFinalEntity> modeltest = creditScoreFinalRepository.findAll(pageableCreditScore);
 
-			System.out.println(modeltest.getContent().get(cpfNumber.intValue()));
+			logger.info("Dados para predição: {}",modeltest.getContent().get(cpfNumber.intValue()));
 
 			Instances mergedInstances = utils.mergeInstances(idContext, classPredict);
 
@@ -145,7 +145,7 @@ public class AnalysisImpl implements Analysis {
 
 			Page<BehaviorScoreEntity> modeltest = behaviorScoreRepository.findAll(pageableBehaviorScore);
 
-			System.out.println(modeltest.getContent().get(cpfNumber.intValue()));
+			logger.info("Dados para predição: {}",modeltest.getContent().get(cpfNumber.intValue()));
 
 			Instances mergedInstances = utils.mergeInstances(idContext, classPredict);
 

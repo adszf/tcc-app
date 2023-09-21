@@ -135,6 +135,7 @@ public class KafkaImpl implements Kafka {
 						classifierMount(lists.get(indexOfList), request, strDate, context,
 								indexOfList);
 					} catch (Exception e) {
+						Thread.currentThread().interrupt();
 						logger.error("An error occurred:", e);
 						throw new RuntimeException(e);
 					}
@@ -150,6 +151,7 @@ public class KafkaImpl implements Kafka {
 						clear();
 					});
 		} catch (Exception e) {
+			Thread.currentThread().interrupt();
 			logger.error("An error occurred:", e);
 			throw new RuntimeException(e);
 		}
@@ -162,7 +164,7 @@ public class KafkaImpl implements Kafka {
 		Integer numFolds = list.size() <= 10 ? list.size() : 10;
 		IntStream.range(0, numFolds).forEach(currentOfFolder -> {
 			try {
-				logger.info("INDEX_OF_LIST: " + String.valueOf(indexOfList));
+				logger.info("INDEX_OF_LIST: {}",String.valueOf(indexOfList));
 				Classifier classifier = machineLearning.build(numFolds, list, currentOfFolder, filteredClassifier,
 						instanceToUse);
 				// Serializar o classificador para um array de bytes
@@ -212,6 +214,9 @@ public class KafkaImpl implements Kafka {
 		number.getAndSet(0);
 		instanceToUse = null;
 		populate.clear();
+		allFuturesMountClassifier.clear();
+		allfuturesPopulate.clear();
+		
 	}
 
 	@KafkaListener(topics = "classifiers")
