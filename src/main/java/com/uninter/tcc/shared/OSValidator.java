@@ -1,4 +1,4 @@
-package com.uninter.tcc.utility;
+package com.uninter.tcc.shared;
 
 import org.springframework.stereotype.Component;
 

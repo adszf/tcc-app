@@ -25,7 +25,7 @@ import com.uninter.tcc.model.CreditScoreFinalEntity;
 import com.uninter.tcc.repository.BehaviorScoreRepository;
 import com.uninter.tcc.repository.ClassifierRepository;
 import com.uninter.tcc.repository.CreditScoreFinalRepository;
-import com.uninter.tcc.utility.Utilities;
+import com.uninter.tcc.shared.Utilities;
 
 import lombok.Data;
 import weka.classifiers.Classifier;
@@ -171,11 +171,11 @@ public class AnalysisImpl implements Analysis {
 
 	private Void populate(Page<ClassifierEntity> page, String type) {
 		page.getContent().parallelStream().forEach(current -> {
-			byte[] serializedClassifierBytesConvert = Base64.decodeBase64(current.getClassifierCompact());
+			//byte[] serializedClassifierBytesConvert = Base64.decodeBase64(current.getClassifierCompact());
 			Classifier classifier;
 			try {
 				classifier = (Classifier) SerializationHelper
-						.read(new ByteArrayInputStream(serializedClassifierBytesConvert));
+						.read(current.getClassifierCompact());
 				Map<String, Classifier> mapClassifiers = new HashMap<>();
 				mapClassifiers.put(type, classifier);
 				populateClassifier.add(mapClassifiers);

@@ -26,7 +26,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uninter.tcc.dto.kafka.send.SendRequestDto;
 import com.uninter.tcc.model.ClassifierEntity;
 import com.uninter.tcc.repository.ClassifierRepository;
-import com.uninter.tcc.utility.ClassifierIdGenerator;
+import com.uninter.tcc.shared.ClassifierIdGenerator;
+import com.uninter.tcc.shared.Utilities;
 
 import lombok.Data;
 import weka.classifiers.Classifier;
@@ -65,6 +66,7 @@ public class KafkaImpl implements Kafka {
 	@Autowired
 	ClassifierIdGenerator generator;
 
+	private final Utilities utils = new Utilities();
 	private final ObjectMapper mapper = new ObjectMapper();
 	private final ModelMapper modelMapper = new ModelMapper();
 	private static List<CompletableFuture<?>> allfuturesPopulate = new ArrayList<>();
@@ -79,6 +81,7 @@ public class KafkaImpl implements Kafka {
 	private List<Object> populate = new ArrayList<>();
 	private boolean status = true;
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(KafkaImpl.class);
+	private volatile int count = 0;
 
 	@Override
 	public String send(SendRequestDto request) throws Exception {
@@ -164,18 +167,18 @@ public class KafkaImpl implements Kafka {
 		Integer numFolds = list.size() <= 10 ? list.size() : 10;
 		IntStream.range(0, numFolds).forEach(currentOfFolder -> {
 			try {
-				logger.info("INDEX_OF_LIST: {}",String.valueOf(indexOfList));
+				logger.info("INDEX_OF_LIST: {}", String.valueOf(indexOfList));
 				Classifier classifier = machineLearning.build(numFolds, list, currentOfFolder, filteredClassifier,
 						instanceToUse);
 				// Serializar o classificador para um array de bytes
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				SerializationHelper.write(baos, classifier);
-				byte[] serializedClassifierBytes = baos.toByteArray();
+				//ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				//SerializationHelper.write(baos, classifier);
+				//byte[] serializedClassifierBytes = baos.toByteArray();
 				// Converter o array de bytes para uma representação Base64 (string)
-				String serializedClassifier = Base64.encodeBase64String(serializedClassifierBytes);
+				//String serializedClassifier = Base64.encodeBase64String(serializedClassifierBytes);
 				ClassifierEntity entity = modelMapper.map(request, ClassifierEntity.class);
 				entity.setDate(strDate);
-				entity.setClassifierCompact(serializedClassifier);
+				entity.setClassifierCompact(utils.wekaSaveModel(classifier, context, count++));
 				entity.setContext(context);
 				kafkaTemplate.send("classifiers", mapper.writeValueAsString(entity));
 				if (executorService.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -216,7 +219,8 @@ public class KafkaImpl implements Kafka {
 		populate.clear();
 		allFuturesMountClassifier.clear();
 		allfuturesPopulate.clear();
-		
+		count = 0;
+
 	}
 
 	@KafkaListener(topics = "classifiers")

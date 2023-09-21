@@ -1,4 +1,4 @@
-package com.uninter.tcc.utility;
+package com.uninter.tcc.shared;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -18,7 +18,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema.Builder;
+
+import weka.classifiers.Classifier;
 import weka.core.Instances;
+import weka.core.SerializationHelper;
 import weka.core.converters.ArffSaver;
 import weka.core.converters.CSVLoader;
 import weka.core.converters.ConverterUtils.DataSource;
@@ -143,7 +146,7 @@ public class Utilities {
 		return result;
 	}
 
-	public Instances mergeInstances(String idContext, String classIndex ) throws Exception {
+	public Instances mergeInstances(String idContext, String classIndex) throws Exception {
 		List<Instances> instancesList = new ArrayList<>();
 		ArrayList<File> files = getFilesOutputArff(idContext);
 		// Carregar cada arquivo de instâncias em uma lista
@@ -162,5 +165,25 @@ public class Utilities {
 			}
 		}
 		return mergedInstances;
+	}
+
+	public String wekaSaveModel(Classifier classifier, String context, int count) throws Exception {
+		File currentDir = new File("").getAbsoluteFile();
+		mapper.getFactory()
+				.setStreamReadConstraints(StreamReadConstraints.builder().maxStringLength(100_000_000).build());
+		String path = OSValidator.getOS().equals("win") ? currentDir.getAbsolutePath()
+				: OSValidator.getOS().equals("uni") ? "/opt/app" : "";
+		String route = path + "/classifier/" + context + "-" + count + ".model";
+		try {
+			if (!path.isBlank()) {
+				SerializationHelper.write(route, classifier);
+			} else {
+				throw new IOException("ERRO Path - Caminho de geração de arquivos não reconhecido!");
+			} // .arff file will be created in the output location
+		} catch (Exception e) {
+			logger.error("ERROR: ", e);
+			throw e;
+		}
+		return route;
 	}
 }

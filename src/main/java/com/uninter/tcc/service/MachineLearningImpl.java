@@ -11,7 +11,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.uninter.tcc.utility.Utilities;
+import com.uninter.tcc.shared.Utilities;
+
 import org.apache.commons.collections4.ListUtils;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
