@@ -12,5 +12,6 @@ EXPOSE 8080
 WORKDIR /opt/app
 RUN mkdir /opt/app/input
 RUN mkdir /opt/app/output
+RUN mkdir /opt/app/classifier
 COPY --from=builder /opt/app/target/*.jar /opt/app/*.jar
 ENTRYPOINT ["java", "-jar", "/opt/app/*.jar" ]

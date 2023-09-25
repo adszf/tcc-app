@@ -27,9 +27,11 @@ services:
     volumes:
       - input:/opt/app/input
       - output:/opt/app/output
+      - classifier:/opt/app/classifier
     restart: always   
 
 volumes:
   input:
   output:
+  classifier:
   mongodata:
