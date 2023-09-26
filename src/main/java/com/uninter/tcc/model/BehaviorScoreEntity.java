@@ -9,25 +9,25 @@ import lombok.Data;
 @Document(collection = "Behavior_Score")
 public class BehaviorScoreEntity {
     @Id
-    public String id;
-    public Integer idade;
-    public String estadoCivil;
-    public String profissao;
-    public Integer salarioMensal;
-    public Integer porcentagemDoSalarioUsada;
-    public Integer grauEscolaridade;
-    public String regiao;
-    public Integer pontualidadePagamento;
-    public Integer usoDeCredito;
-    public Integer mediaGastosMensais;
-    public Integer valorTotalEmprestimoSemJuros;
-    public Integer valorTotalEmprestimoComJuros;
-    public Integer totalTaxa;
-    public Integer valorParcelas;
-    public Integer quantidadeParcelasEmprestimoComJuros;
-    public Integer quantidadeParcelasEmprestimoSemJuros;
-    public Integer taxaJurosAnual;
-    public String negociacao;
-    public Integer historicoAtual;
-    public String tipoEmprestimo;
+    private String id;
+    private Integer idade;
+    private String estadoCivil;
+    private String profissao;
+    private Integer salarioMensal;
+    private Integer porcentagemDoSalarioUsada;
+    private Integer grauEscolaridade;
+    private String regiao;
+    private Integer pontualidadePagamento;
+    private Integer usoDeCredito;
+    private Integer mediaGastosMensais;
+    private Integer valorTotalEmprestimoSemJuros;
+    private Integer valorTotalEmprestimoComJuros;
+    private Integer totalTaxa;
+    private Integer valorParcelas;
+    private Integer quantidadeParcelasEmprestimoComJuros;
+    private Integer quantidadeParcelasEmprestimoSemJuros;
+    private Integer taxaJurosAnual;
+    private String negociacao;
+    private Integer historicoAtual;
+    private String tipoEmprestimo;
 }

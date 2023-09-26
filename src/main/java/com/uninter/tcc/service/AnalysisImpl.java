@@ -25,7 +25,7 @@ import com.uninter.tcc.model.CreditScoreFinalEntity;
 import com.uninter.tcc.repository.BehaviorScoreRepository;
 import com.uninter.tcc.repository.ClassifierRepository;
 import com.uninter.tcc.repository.CreditScoreFinalRepository;
-import com.uninter.tcc.shared.Utilities;
+import com.uninter.tcc.share.Utilities;
 
 import lombok.Data;
 import weka.classifiers.Classifier;

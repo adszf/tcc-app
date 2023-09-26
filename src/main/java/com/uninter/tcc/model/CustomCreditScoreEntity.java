@@ -8,20 +8,20 @@ import lombok.Data;
 @Document(collection = "Custom_Credit_Score")
 public class CustomCreditScoreEntity{
     @Id
-    public String id;
-    public long fakeIdCpf;
-    public String nome;
-    public int idade;
-    public String estadoCivil;
-    public String cidade;
-    public String regiao;
-    public int numContasBancarias;
-    public int numCartaoCredito;
-    public int numEmprestimo;
-    public String profissao;
-    public int salarioMensal;
-    public String tipoEmprestimo;
-    public String pagamentoValorMinimo;
-    public int atrasoPartirDataVencimento;
-    public int historicoCreditoIdade;
+    private String id;
+    private long fakeIdCpf;
+    private String nome;
+    private int idade;
+    private String estadoCivil;
+    private String cidade;
+    private String regiao;
+    private int numContasBancarias;
+    private int numCartaoCredito;
+    private int numEmprestimo;
+    private String profissao;
+    private int salarioMensal;
+    private String tipoEmprestimo;
+    private String pagamentoValorMinimo;
+    private int atrasoPartirDataVencimento;
+    private int historicoCreditoIdade;
 }

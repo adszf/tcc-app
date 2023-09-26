@@ -8,22 +8,22 @@ import lombok.Data;
 @Document(collection = "Credit_Score_Final")
 public class CreditScoreFinalEntity{
     @Id
-    public String id;
-    public Integer idade;
-    public String estadoCivil;
-    public Integer numContasBancarias;
-    public Integer numCartaoCredito;
-    public Integer numEmprestimoContratado;
-    public String profissao;
-    public Integer salarioMensal;
-    public String pagamentoValorMinimo;
-    public Integer atrasoPartirDataVencimentoDias;
-    public Integer historicoCreditoAnos;
-    public String tipoEmprestimoSolicitacao;
-    public String pendencia;
-    public Integer quantidadeParcelasSolicitada;
-    public Integer grauEscolaridade;
-    public Integer moradia;
-    public Integer numDependentes;
-    public String creditScore;
+    private String id;
+    private Integer idade;
+    private String estadoCivil;
+    private Integer numContasBancarias;
+    private Integer numCartaoCredito;
+    private Integer numEmprestimoContratado;
+    private String profissao;
+    private Integer salarioMensal;
+    private String pagamentoValorMinimo;
+    private Integer atrasoPartirDataVencimentoDias;
+    private Integer historicoCreditoAnos;
+    private String tipoEmprestimoSolicitacao;
+    private String pendencia;
+    private Integer quantidadeParcelasSolicitada;
+    private Integer grauEscolaridade;
+    private Integer moradia;
+    private Integer numDependentes;
+    private String creditScore;
 }

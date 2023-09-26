@@ -26,8 +26,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uninter.tcc.dto.kafka.send.SendRequestDto;
 import com.uninter.tcc.model.ClassifierEntity;
 import com.uninter.tcc.repository.ClassifierRepository;
-import com.uninter.tcc.shared.ClassifierIdGenerator;
-import com.uninter.tcc.shared.Utilities;
+import com.uninter.tcc.share.ClassifierIdGenerator;
+import com.uninter.tcc.share.Utilities;
 
 import lombok.Data;
 import weka.classifiers.Classifier;

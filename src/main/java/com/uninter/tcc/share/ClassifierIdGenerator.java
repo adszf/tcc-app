@@ -1,4 +1,4 @@
-package com.uninter.tcc.shared;
+package com.uninter.tcc.share;
 
 import java.util.Random;
 

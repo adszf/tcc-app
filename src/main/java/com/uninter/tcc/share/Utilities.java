@@ -1,4 +1,4 @@
-package com.uninter.tcc.shared;
+package com.uninter.tcc.share;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -39,25 +39,9 @@ public class Utilities {
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy_hhmmss");
 		String strDate = sdf.format(date);
 		File currentDir = new File("").getAbsoluteFile();
+		//Alterar limite de leitura no ObjectMapper
 		mapper.getFactory()
 				.setStreamReadConstraints(StreamReadConstraints.builder().maxStringLength(100_000_000).build());
-
-		/*
-		 * System.out.println( new File("").getAbsolutePath()); System.out.println( new
-		 * File("").getAbsoluteFile()); System.out.println( new
-		 * File("").getCanonicalPath());
-		 */
-		/*
-		 * String s = "name: " + System.getProperty("os.name"); s += ", version: " +
-		 * System.getProperty("os.version"); s += ", arch: " +
-		 * System.getProperty("os.arch"); System.out.println("OS=" + s);
-		 * System.out.println("Working Directory = " + System.getProperty("user.dir"));
-		 */
-		/*
-		 * Path currentRelativePath = Paths.get(""); String path =
-		 * currentRelativePath.toAbsolutePath().toString();
-		 * System.out.println("Current absolute path is: " + path);
-		 */
 		String path = OSValidator.getOS().equals("win") ? currentDir.getAbsolutePath()
 				: OSValidator.getOS().equals("uni") ? "/opt/app" : "";
 		try {
@@ -135,7 +119,7 @@ public class Utilities {
 		File folder = new File(folderPath);
 		// Listando os arquivos na pasta
 		File[] allFiles = folder.listFiles();
-		// Procurando os arquivos que começam com "credit--381170476"
+		// Procurando os arquivos que começam com a variavel context
 		if (allFiles != null) {
 			for (File file : allFiles) {
 				if (file.getName().startsWith(context)) {

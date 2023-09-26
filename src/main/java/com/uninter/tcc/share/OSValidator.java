@@ -1,9 +1,12 @@
-package com.uninter.tcc.shared;
+package com.uninter.tcc.share;
 
 import org.springframework.stereotype.Component;
 
+import lombok.Data;
+
 @Component
-class OSValidator {
+@Data
+public class OSValidator {
 
     private static String OS = System.getProperty("os.name").toLowerCase();
 
