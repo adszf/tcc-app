@@ -1,6 +1,9 @@
 package com.uninter.tcc.service;
 
-import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,7 +13,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -21,10 +23,10 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uninter.tcc.model.BehaviorScoreEntity;
 import com.uninter.tcc.model.ClassifierEntity;
-import com.uninter.tcc.model.CreditScoreFinalEntity;
+import com.uninter.tcc.model.CreditScoreEntity;
 import com.uninter.tcc.repository.BehaviorScoreRepository;
 import com.uninter.tcc.repository.ClassifierRepository;
-import com.uninter.tcc.repository.CreditScoreFinalRepository;
+import com.uninter.tcc.repository.CreditScoreRepository;
 import com.uninter.tcc.share.Utilities;
 
 import lombok.Data;
@@ -38,7 +40,7 @@ import weka.core.SerializationHelper;
 public class AnalysisImpl implements Analysis {
 
 	@Autowired
-	private CreditScoreFinalRepository creditScoreFinalRepository;
+	private CreditScoreRepository creditScoreFinalRepository;
 
 	@Autowired
 	private BehaviorScoreRepository behaviorScoreRepository;
@@ -47,7 +49,7 @@ public class AnalysisImpl implements Analysis {
 	private ClassifierRepository classifierRepository;
 
 	@Autowired
-	MachineLearning machineLearning;
+	private MachineLearning machineLearning;
 
 	@Autowired
 	@Qualifier("taskExecutorAnalysis")
@@ -91,7 +93,7 @@ public class AnalysisImpl implements Analysis {
 
 			CompletableFuture.allOf(allfutures.toArray(new CompletableFuture[allfutures.size()])).join();
 
-			Page<CreditScoreFinalEntity> modeltest = creditScoreFinalRepository.findAll(pageableCreditScore);
+			Page<CreditScoreEntity> modeltest = creditScoreFinalRepository.findAll(pageableCreditScore);
 
 			logger.info("Dados para predição: {}",modeltest.getContent().get(cpfNumber.intValue()));
 
@@ -174,8 +176,12 @@ public class AnalysisImpl implements Analysis {
 			//byte[] serializedClassifierBytesConvert = Base64.decodeBase64(current.getClassifierCompact());
 			Classifier classifier;
 			try {
+				/* File modelFile = new File(current.getClassifierCompact());
+            FileInputStream fileInputStream = new FileInputStream(modelFile);
+            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream); */
 				classifier = (Classifier) SerializationHelper
 						.read(current.getClassifierCompact());
+					/* 	classifier = (Classifier) objectInputStream; */
 				Map<String, Classifier> mapClassifiers = new HashMap<>();
 				mapClassifiers.put(type, classifier);
 				populateClassifier.add(mapClassifiers);

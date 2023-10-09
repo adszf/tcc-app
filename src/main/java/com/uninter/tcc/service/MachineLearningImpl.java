@@ -19,6 +19,7 @@ import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.classifiers.meta.Vote;
+import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -36,17 +37,44 @@ public class MachineLearningImpl implements MachineLearning {
 	@Autowired
 	Utilities util = new Utilities();
 
+	// Usado para utilizar Threads
+	// @Autowired
+	// @Qualifier("taskExecutorMachineLearning")
+	// private ExecutorService executorService;
+	// final ReentrantLock counterLock = new ReentrantLock(true);
+
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(MachineLearningImpl.class);
 
 	public Evaluation cross(List<Instance> instanceList, int numFolds, FilteredClassifier filteredClassifier,
 			Evaluation evaluation, Instances instancesModel) throws Exception {
 		Instances data = new Instances(instancesModel, 0);
 		data.addAll(instanceList);
+		/*
+		  IntStream.range(0, numFolds).forEach(currentOfFolder -> {
+		  Classifier classifier;
+		  try {
+		  classifier = build(numFolds, data, currentOfFolder, filteredClassifier,
+		  instancesModel);
+		  Instances test = data.testCV(numFolds, currentOfFolder);
+		  evaluation.evaluateModel(classifier, test);
+		  } catch (Exception e) {
+		  e.printStackTrace();
+		  new RuntimeException(e);
+		  }
+		  });
+		 */
+
 		for (int i = 0; i < numFolds; i++) {
-			Classifier classifier = build(numFolds, data, i, filteredClassifier, instancesModel);
+			// Se fosse executar em Threads, devesse ter o counterLock para trancar o
+			// processo, pois o mesmo precisa esta finalizado para continuar as proximas Steps.
+			// counterLock.lock();
+			Classifier classifier = build(numFolds, data, i, filteredClassifier,
+					instancesModel);
+			// counterLock.unlock();
 			Instances test = data.testCV(numFolds, i);
 			evaluation.evaluateModel(classifier, test);
 		}
+
 		return evaluation;
 	}
 
@@ -110,36 +138,82 @@ public class MachineLearningImpl implements MachineLearning {
 	}
 
 	@Override
-	public Evaluation train(List<List<Instance>> partitions, FilteredClassifier filteredClassifier,
+	public StringBuilder train(List<List<Instance>> partitions, FilteredClassifier filteredClassifier,
 			Instances instancesModel) throws Exception {
 		Evaluation evaluationActual = new Evaluation(instancesModel);
 		StringBuilder evaluationStatus = new StringBuilder();
+		// Executando em Threads não obteve um aumento significativo na performace.
+		// No processo de train, o mesmo foi usado em forma sequencial e paralelo a fim de verificar  aumento de performace, entretanto, não obtevesse desempenho.
+		/*
+		  CompletableFuture<Void> execute;
+		  List<CompletableFuture> allfutures = new ArrayList<>();
+		  AtomicInteger count = new AtomicInteger(0);
+		  
+		  for (List<Instance> actualInstance : partitions) {
+		  execute = CompletableFuture.runAsync(() -> {
+		  try {
+		  logger.info("______START______");
+		  List<Instance> instances = actualInstance;
+		  Integer numFolds = instances.size() <= 10 ? instances.size() : 10;
+		  logger.info("{}", partitions.get(count.get()).size());
+		  logger.info("{}", count.get());
+		  // evaluation.crossValidateModel(fc, instances, 5, new Random(1));
+		  cross(instances, numFolds, filteredClassifier, evaluationActual,
+		  instancesModel);
+		  chooseLoggerType(instancesModel.classAttribute(), evaluationActual);
+		  count.getAndIncrement();
+		  logger.info("______END______");
+		  } catch (Exception e) {
+		  throw new RuntimeException(e);
+		  }
+		  
+		  }, executorService);
+		  allfutures.add(execute);
+		  }
+		  CompletableFuture.allOf(allfutures.toArray(new
+		  CompletableFuture[allfutures.size()])).join();
+		 */
 		for (int i = 0; i < partitions.size(); i++) {
-			logger.info("______INICIO______");
+			logger.info("______START______");
 			List<Instance> instances = partitions.get(i);
 			Integer numFolds = instances.size() <= 10 ? instances.size() : 10;
 			logger.info("{}", partitions.get(i).size());
-			logger.info("{}", String.valueOf(i));
+			logger.info("{}", i);
 			// evaluation.crossValidateModel(fc, instances, 5, new Random(1));
-			cross(instances, numFolds, filteredClassifier, evaluationActual, instancesModel);
-			logger.info("CORRETO: {}", evaluationActual.correct());
-			logger.info("INCORRETO: {}", evaluationActual.incorrect());
-			logger.info("NAO CLASSIFICADO: {}", evaluationActual.unclassified());
-			logger.info("PORCENTAGEM CORRETA: {}", evaluationActual.pctCorrect());
-			logger.info("PORCENTAGEM INCORRETA: {}", evaluationActual.pctIncorrect());
-			logger.info("PORCENTAGEM NAO CLASSIFICADA: {}", evaluationActual.pctUnclassified());
-			logger.info("______FIM______");
+			cross(instances, numFolds, filteredClassifier, evaluationActual,
+					instancesModel);
+			chooseLoggerType(instancesModel.classAttribute(), evaluationActual);
+			logger.info("______END______");
 		}
-		evaluationStatus.append(evaluationActual.toSummaryString(true)).append(evaluationActual.toClassDetailsString())
-				.append(evaluationActual.toMatrixString("=== Confusion Matrix ==="));
-		logger.info("{}",evaluationStatus.toString());
-		return evaluationActual;
+		evaluationStatus.append(evaluationActual.toSummaryString(true));
+		if (instancesModel.classAttribute().isNominal()) {
+			evaluationStatus.append(evaluationActual.toClassDetailsString());
+			evaluationStatus.append(evaluationActual.toMatrixString("=== Confusion Matrix ==="));
+		}
+		return evaluationStatus;
+	}
+
+	private void chooseLoggerType(Attribute attribute, Evaluation evaluationActual) throws Exception {
+		if (attribute.isNominal()) {
+			logger.info("Correct: {}", evaluationActual.correct());
+			logger.info("Incorrect: {}", evaluationActual.incorrect());
+			logger.info("Unclassified: {}", evaluationActual.unclassified());
+			logger.info("Pct.Correct: {}", evaluationActual.pctCorrect());
+			logger.info("Pct.Incorrect: {}", evaluationActual.pctIncorrect());
+			logger.info("Pct.Unclassified: {}", evaluationActual.pctUnclassified());
+		} else {
+			logger.info("Correlation coefficient: {}", evaluationActual.correlationCoefficient());
+			logger.info("Mean absolute error : {}", evaluationActual.meanAbsoluteError());
+			logger.info("Root mean squared error: {}", evaluationActual.rootMeanSquaredError());
+			logger.info("Relative absolute error : {}", evaluationActual.relativeAbsoluteError());
+			logger.info("Root relative squared error: {}", evaluationActual.rootRelativeSquaredError());
+		}
 	}
 
 	@Override
 	public Classifier build(Integer numFolds, List<Instance> instance, Integer sequence,
 			FilteredClassifier filteredClassifier, Instances instanceToUse) throws Exception {
-		logger.info("SEQUENCE: {}",sequence);
+		logger.info("SEQUENCE: {}", sequence);
 		Instances data = new Instances(instanceToUse, 0);
 		data.addAll(instance);
 		data.randomize(new Random(1));
@@ -158,6 +232,7 @@ public class MachineLearningImpl implements MachineLearning {
 		for (int i = 0; i < newIstanceToAnalyze.numAttributes(); i++) {
 			String name = instances.attribute(i).name();
 			Field field = client.getClass().getDeclaredField(name);
+			field.setAccessible(true);
 			Object value = field.get(client);
 			Boolean flagFieldExists = name.equalsIgnoreCase(field.getName());
 			if (Boolean.TRUE.equals(flagFieldExists)) {
@@ -190,7 +265,7 @@ public class MachineLearningImpl implements MachineLearning {
 		double[] predicts = ensembleClassifier.distributionForInstance(newIstanceToAnalyze);
 		int count = 0;
 		for (double predict : predicts) {
-			result.append("\n" + newIstanceToAnalyze.attribute(newIstanceToAnalyze.numAttributes() - 1).value(count)
+			result.append("\n" + newIstanceToAnalyze.attribute(newIstanceToAnalyze.classIndex()).value(count)
 					+ ":" + nf.format(predict));
 			count++;
 		}
@@ -204,9 +279,7 @@ public class MachineLearningImpl implements MachineLearning {
 		StringBuilder response = new StringBuilder();
 		List<List<Instance>> list = partitions(partitionSize, instances);
 		FilteredClassifier filteredClassifier = filter(classnameClassifier, optClassifier, optFilter);
-		Evaluation evaluation = train(list, filteredClassifier, instances);
-		response.append(evaluation.toSummaryString(true)).append(evaluation.toClassDetailsString())
-				.append(evaluation.toMatrixString("=== Confusion Matrix ==="));
+		response = train(list, filteredClassifier, instances);
 		return response.toString();
 	}
 }

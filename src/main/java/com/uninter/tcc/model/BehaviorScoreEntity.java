@@ -12,22 +12,24 @@ public class BehaviorScoreEntity {
     private String id;
     private Integer idade;
     private String estadoCivil;
+    private String genero;
+    private String relacionamento;
+    private String usoCredito;
     private String profissao;
     private Integer salarioMensal;
     private Integer porcentagemDoSalarioUsada;
     private Integer grauEscolaridade;
     private String regiao;
     private Integer pontualidadePagamento;
-    private Integer usoDeCredito;
     private Integer mediaGastosMensais;
-    private Integer valorTotalEmprestimoSemJuros;
     private Integer valorTotalEmprestimoComJuros;
     private Integer totalTaxa;
     private Integer valorParcelas;
     private Integer quantidadeParcelasEmprestimoComJuros;
-    private Integer quantidadeParcelasEmprestimoSemJuros;
     private Integer taxaJurosAnual;
     private String negociacao;
-    private Integer historicoAtual;
+    private Integer historicoPagamento;
+    private String eventos;
+    private String quantidadeDividas;
     private String tipoEmprestimo;
 }

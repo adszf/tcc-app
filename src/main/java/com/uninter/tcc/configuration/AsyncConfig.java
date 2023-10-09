@@ -23,7 +23,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableAsync
 @EnableScheduling
 public class AsyncConfig implements AsyncConfigurer {
-	
+
 	@Value(value = "${fixed.thread.pool}")
 	private String fixedThreadPool;
 

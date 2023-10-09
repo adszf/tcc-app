@@ -34,11 +34,8 @@ import weka.classifiers.Classifier;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.SerializationHelper;
-import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import org.apache.commons.codec.binary.Base64;
 import org.modelmapper.ModelMapper;
 
 import java.util.stream.IntStream;
@@ -74,8 +71,6 @@ public class KafkaImpl implements Kafka {
 	private static final AtomicInteger number = new AtomicInteger(0); // Número da página inicial
 	private boolean hasMoreDocuments = true;
 	private String context;
-	private CompletableFuture<Void> listClassifierMount;
-	private CompletableFuture<Void> listPagesMongoFuture;
 	private List<List<Instance>> lists = new ArrayList<>();
 	private Instances instanceToUse;
 	private List<Object> populate = new ArrayList<>();
@@ -103,18 +98,11 @@ public class KafkaImpl implements Kafka {
 			while (hasMoreDocuments) {
 				populateObjects(repositoryClass, size);
 			}
-			CompletableFuture.allOf(allfuturesPopulate.toArray(new CompletableFuture[allfuturesPopulate.size()]))
-					.thenRun(() -> {
-						if (status) {
-							logger.info("OK POPULATE");
-							try {
-								mountObjects(createClassname, request, strDate);
-							} catch (Exception e) {
-								logger.error("An error occurred:", e);
-								throw new RuntimeException(e);
-							}
-						}
-					}).completeExceptionally(new RuntimeException("failed!"));
+			allfuturesPopulate.forEach(CompletableFuture::join);
+			if (status) {
+				logger.info("OK POPULATE");
+				mountObjects(createClassname, request, strDate);
+			}
 		} catch (Exception e) {
 			Thread.currentThread().interrupt();
 			logger.error("Unable to send message:", e);
@@ -125,14 +113,16 @@ public class KafkaImpl implements Kafka {
 				: "Em processo no MS, aguarde...";
 	}
 
-	private void mountObjects(Object createClassname, SendRequestDto request, String strDate) throws Exception {
+	private Void mountObjects(Object createClassname, SendRequestDto request, String strDate) throws Exception {
 		try {
+
 			instanceToUse = machineLearning.instances(
 					mapper.writeValueAsString(populate.toArray()),
 					createClassname.getClass().getSimpleName(),
 					request.getClassIndex(), false, context);
 			lists = machineLearning.partitions(request.getQuantity(), instanceToUse);
 			IntStream.range(0, lists.size()).forEach(indexOfList -> {
+				CompletableFuture<Void> listClassifierMount;
 				listClassifierMount = CompletableFuture.runAsync(() -> {
 					try {
 						classifierMount(lists.get(indexOfList), request, strDate, context,
@@ -158,6 +148,7 @@ public class KafkaImpl implements Kafka {
 			logger.error("An error occurred:", e);
 			throw new RuntimeException(e);
 		}
+		return null;
 	}
 
 	private void classifierMount(List<Instance> list, SendRequestDto request, String strDate, String context,
@@ -170,19 +161,13 @@ public class KafkaImpl implements Kafka {
 				logger.info("INDEX_OF_LIST: {}", String.valueOf(indexOfList));
 				Classifier classifier = machineLearning.build(numFolds, list, currentOfFolder, filteredClassifier,
 						instanceToUse);
-				// Serializar o classificador para um array de bytes
-				//ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				//SerializationHelper.write(baos, classifier);
-				//byte[] serializedClassifierBytes = baos.toByteArray();
-				// Converter o array de bytes para uma representação Base64 (string)
-				//String serializedClassifier = Base64.encodeBase64String(serializedClassifierBytes);
 				ClassifierEntity entity = modelMapper.map(request, ClassifierEntity.class);
 				entity.setDate(strDate);
 				entity.setClassifierCompact(utils.wekaSaveModel(classifier, context, count++));
 				entity.setContext(context);
 				kafkaTemplate.send("classifiers", mapper.writeValueAsString(entity));
 				if (executorService.awaitTermination(5, TimeUnit.SECONDS)) {
-					executorService.shutdown();
+					executorService.shutdownNow();
 				}
 			} catch (Exception e) {
 				logger.error("An error occurred:", e);
@@ -192,7 +177,8 @@ public class KafkaImpl implements Kafka {
 
 	}
 
-	private void populateObjects(Class<?> repositoryClass, int size) throws Exception {
+	private Void populateObjects(Class<?> repositoryClass, int size) throws Exception {
+		CompletableFuture<Void> listPagesMongoFuture;
 		MongoRepositoryFactory factory = new MongoRepositoryFactory(mongoTemplate);
 		var repository = factory.getRepository(repositoryClass);
 		Pageable pageable = PageRequest.of(number.get(), size);
@@ -209,9 +195,11 @@ public class KafkaImpl implements Kafka {
 		number.incrementAndGet();
 		hasMoreDocuments = page.hasNext();
 		allfuturesPopulate.add(listPagesMongoFuture);
+		return null;
 	}
 
 	void clear() {
+		logger.info("Cleaning up!");
 		status = true;
 		hasMoreDocuments = true;
 		number.getAndSet(0);
