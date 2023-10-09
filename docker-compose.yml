@@ -1,4 +1,56 @@
 services:
+  zookeeper:
+    image: "bitnami/zookeeper:latest"
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+
+  kafka:
+    image: "confluentinc/cp-kafka:7.2.1"
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_INTERNAL://localhost:9093
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+    depends_on:
+      - zookeeper
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.2.1
+    container_name: schema-registry
+    depends_on:
+      - kafka
+    ports:
+      - "8081:8081"
+    environment:
+      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
+      - SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_LISTENERS=http://0.0.0.0:8081
+
+  kafka-ui:
+    image: "provectuslabs/kafka-ui:latest"
+    container_name: kafka-ui
+    ports:
+      - "8088:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
+    depends_on:
+      - kafka
+      - schema-registry
+
   mongodb:
     container_name: mongodb
     image: mongo
@@ -7,6 +59,7 @@ services:
       - 27017:27017
     volumes:
       - mongodata:/data/db
+      
   api:
     container_name: api-tccapp
     image: tccapp:latest
@@ -14,9 +67,9 @@ services:
       - MONGODB_HOST=mongodb
       - MONGODB_PORT=27017
       - MONGODB_DATABASE=AnalysisData
-      -	KAFKA_BOOTSTRAP_SERVERS=192.168.100.111
-      -	KAFKA_GROUP_ID=1
-      -	THREAD_POOL=15
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_GROUP_ID=1
+      - THREAD_POOL=15
     build:
       context: ./
       dockerfile: Dockerfile
@@ -28,7 +81,7 @@ services:
       - input:/opt/app/input
       - output:/opt/app/output
       - classifier:/opt/app/classifier
-    restart: always   
+    restart: always
 
 volumes:
   input:
