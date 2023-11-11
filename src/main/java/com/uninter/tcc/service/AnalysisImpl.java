@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -19,9 +20,13 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uninter.tcc.model.BehaviorScoreEntity;
 import com.uninter.tcc.model.ClassifierEntity;
+import com.uninter.tcc.model.ClientBehaviorScoreEntity;
+import com.uninter.tcc.model.ClientCreditScoreEntity;
 import com.uninter.tcc.model.CreditScoreEntity;
 import com.uninter.tcc.repository.BehaviorScoreRepository;
 import com.uninter.tcc.repository.ClassifierRepository;
+import com.uninter.tcc.repository.ClientBehaviorScoreRepository;
+import com.uninter.tcc.repository.ClientCreditScoreRepository;
 import com.uninter.tcc.repository.CreditScoreRepository;
 import com.uninter.tcc.share.Utilities;
 
@@ -36,7 +41,7 @@ import weka.core.SerializationHelper;
 public class AnalysisImpl implements Analysis {
 
 	@Autowired
-	private CreditScoreRepository creditScoreFinalRepository;
+	private CreditScoreRepository creditScoreRepository;
 
 	@Autowired
 	private BehaviorScoreRepository behaviorScoreRepository;
@@ -48,11 +53,18 @@ public class AnalysisImpl implements Analysis {
 	private MachineLearning machineLearning;
 
 	@Autowired
+	private ClientCreditScoreRepository clientCreditScoreRepository;
+
+	@Autowired
+	private ClientBehaviorScoreRepository clientBehaviorScoreRepository;
+
+	@Autowired
 	@Qualifier("taskExecutorAnalysis")
 	private ExecutorService executorService;
 
 	private final Utilities utils = new Utilities();
 	private final ObjectMapper mapper = new ObjectMapper();
+	private final ModelMapper modelMapper = new ModelMapper();
 	private List<Map<String, Classifier>> populateClassifier = new ArrayList<>();
 	private static List<CompletableFuture<?>> allfutures = new ArrayList<>();
 	private static final AtomicInteger number = new AtomicInteger(0); // Número da página inicial
@@ -64,10 +76,8 @@ public class AnalysisImpl implements Analysis {
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AnalysisImpl.class);
 
 	@Override
-	public String creditScoreAnalysis(Long cpfNumber, String idContext, String quantityOfClassifiers,
+	public String creditScoreAnalysis(String cpfNumber, String idContext, String quantityOfClassifiers,
 			String classPredict) throws Exception {
-
-		Pageable pageableCreditScore = PageRequest.of(0, 2000);
 		String result = null;
 		try {
 
@@ -89,14 +99,17 @@ public class AnalysisImpl implements Analysis {
 
 			CompletableFuture.allOf(allfutures.toArray(new CompletableFuture[allfutures.size()])).join();
 
-			Page<CreditScoreEntity> modeltest = creditScoreFinalRepository.findAll(pageableCreditScore);
+			ClientCreditScoreEntity modeltest = clientCreditScoreRepository.findByCpfAndTipo(cpfNumber,
+					CREDIT);
 
-			logger.info("Dados para predição: {}",modeltest.getContent().get(cpfNumber.intValue()));
+			CreditScoreEntity client = modelMapper.map(modeltest, CreditScoreEntity.class);
+
+			logger.info("Dados para predição: {}", client);
 
 			Instances mergedInstances = utils.mergeInstances(idContext, classPredict);
 
 			Instance instanceToAnalyze = machineLearning.createAnalysis(mergedInstances,
-					modeltest.getContent().get(cpfNumber.intValue()), classPredict);
+					client, classPredict);
 
 			List<Classifier> list = populateClassifier.stream()
 					.filter(map -> map.containsKey(CREDIT))
@@ -116,10 +129,8 @@ public class AnalysisImpl implements Analysis {
 	}
 
 	@Override
-	public String behaviorScoreAnalysis(Long cpfNumber, String idContext, String quantityOfClassifiers,
+	public String behaviorScoreAnalysis(String cpfNumber, String idContext, String quantityOfClassifiers,
 			String classPredict) throws Exception {
-
-		Pageable pageableBehaviorScore = PageRequest.of(0, 2000);
 		String result = null;
 		try {
 
@@ -141,14 +152,17 @@ public class AnalysisImpl implements Analysis {
 
 			CompletableFuture.allOf(allfutures.toArray(new CompletableFuture[allfutures.size()])).join();
 
-			Page<BehaviorScoreEntity> modeltest = behaviorScoreRepository.findAll(pageableBehaviorScore);
+			ClientBehaviorScoreEntity modeltest = clientBehaviorScoreRepository.findByCpfAndTipo(cpfNumber,
+					BEHAVIOR);
 
-			logger.info("Dados para predição: {}",modeltest.getContent().get(cpfNumber.intValue()));
+			BehaviorScoreEntity client = modelMapper.map(modeltest, BehaviorScoreEntity.class);
+
+			logger.info("Dados para predição: {}", client);
 
 			Instances mergedInstances = utils.mergeInstances(idContext, classPredict);
 
 			Instance instanceToAnalyze = machineLearning.createAnalysis(mergedInstances,
-					modeltest.getContent().get(cpfNumber.intValue()), classPredict);
+					client, classPredict);
 
 			List<Classifier> list = populateClassifier.stream()
 					.filter(map -> map.containsKey(BEHAVIOR))
@@ -169,15 +183,18 @@ public class AnalysisImpl implements Analysis {
 
 	private Void populate(Page<ClassifierEntity> page, String type) {
 		page.getContent().parallelStream().forEach(current -> {
-			//byte[] serializedClassifierBytesConvert = Base64.decodeBase64(current.getClassifierCompact());
+			// byte[] serializedClassifierBytesConvert =
+			// Base64.decodeBase64(current.getClassifierCompact());
 			Classifier classifier;
 			try {
-				/* File modelFile = new File(current.getClassifierCompact());
-            FileInputStream fileInputStream = new FileInputStream(modelFile);
-            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream); */
+				/*
+				 * File modelFile = new File(current.getClassifierCompact());
+				 * FileInputStream fileInputStream = new FileInputStream(modelFile);
+				 * ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+				 */
 				classifier = (Classifier) SerializationHelper
 						.read(current.getClassifierCompact());
-					/* 	classifier = (Classifier) objectInputStream; */
+				/* classifier = (Classifier) objectInputStream; */
 				Map<String, Classifier> mapClassifiers = new HashMap<>();
 				mapClassifiers.put(type, classifier);
 				populateClassifier.add(mapClassifiers);

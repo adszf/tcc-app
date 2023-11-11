@@ -50,23 +50,24 @@ public class MachineLearningImpl implements MachineLearning {
 		Instances data = new Instances(instancesModel, 0);
 		data.addAll(instanceList);
 		/*
-		  IntStream.range(0, numFolds).forEach(currentOfFolder -> {
-		  Classifier classifier;
-		  try {
-		  classifier = build(numFolds, data, currentOfFolder, filteredClassifier,
-		  instancesModel);
-		  Instances test = data.testCV(numFolds, currentOfFolder);
-		  evaluation.evaluateModel(classifier, test);
-		  } catch (Exception e) {
-		  e.printStackTrace();
-		  new RuntimeException(e);
-		  }
-		  });
+		 * IntStream.range(0, numFolds).forEach(currentOfFolder -> {
+		 * Classifier classifier;
+		 * try {
+		 * classifier = build(numFolds, data, currentOfFolder, filteredClassifier,
+		 * instancesModel);
+		 * Instances test = data.testCV(numFolds, currentOfFolder);
+		 * evaluation.evaluateModel(classifier, test);
+		 * } catch (Exception e) {
+		 * e.printStackTrace();
+		 * new RuntimeException(e);
+		 * }
+		 * });
 		 */
 
 		for (int i = 0; i < numFolds; i++) {
 			// Se fosse executar em Threads, devesse ter o counterLock para trancar o
-			// processo, pois o mesmo precisa esta finalizado para continuar as proximas Steps.
+			// processo, pois o mesmo precisa esta finalizado para continuar as proximas
+			// Steps.
 			// counterLock.lock();
 			Classifier classifier = build(numFolds, data, i, filteredClassifier,
 					instancesModel);
@@ -143,35 +144,36 @@ public class MachineLearningImpl implements MachineLearning {
 		Evaluation evaluationActual = new Evaluation(instancesModel);
 		StringBuilder evaluationStatus = new StringBuilder();
 		// Executando em Threads não obteve um aumento significativo na performace.
-		// No processo de train, o mesmo foi usado em forma sequencial e paralelo a fim de verificar  aumento de performace, entretanto, não obtevesse desempenho.
+		// No processo de train, o mesmo foi usado em forma sequencial e paralelo a fim
+		// de verificar aumento de performace, entretanto, não obtevesse desempenho.
 		/*
-		  CompletableFuture<Void> execute;
-		  List<CompletableFuture> allfutures = new ArrayList<>();
-		  AtomicInteger count = new AtomicInteger(0);
-		  
-		  for (List<Instance> actualInstance : partitions) {
-		  execute = CompletableFuture.runAsync(() -> {
-		  try {
-		  logger.info("______START______");
-		  List<Instance> instances = actualInstance;
-		  Integer numFolds = instances.size() <= 10 ? instances.size() : 10;
-		  logger.info("{}", partitions.get(count.get()).size());
-		  logger.info("{}", count.get());
-		  // evaluation.crossValidateModel(fc, instances, 5, new Random(1));
-		  cross(instances, numFolds, filteredClassifier, evaluationActual,
-		  instancesModel);
-		  chooseLoggerType(instancesModel.classAttribute(), evaluationActual);
-		  count.getAndIncrement();
-		  logger.info("______END______");
-		  } catch (Exception e) {
-		  throw new RuntimeException(e);
-		  }
-		  
-		  }, executorService);
-		  allfutures.add(execute);
-		  }
-		  CompletableFuture.allOf(allfutures.toArray(new
-		  CompletableFuture[allfutures.size()])).join();
+		 * CompletableFuture<Void> execute;
+		 * List<CompletableFuture> allfutures = new ArrayList<>();
+		 * AtomicInteger count = new AtomicInteger(0);
+		 * 
+		 * for (List<Instance> actualInstance : partitions) {
+		 * execute = CompletableFuture.runAsync(() -> {
+		 * try {
+		 * logger.info("______START______");
+		 * List<Instance> instances = actualInstance;
+		 * Integer numFolds = instances.size() <= 10 ? instances.size() : 10;
+		 * logger.info("{}", partitions.get(count.get()).size());
+		 * logger.info("{}", count.get());
+		 * // evaluation.crossValidateModel(fc, instances, 5, new Random(1));
+		 * cross(instances, numFolds, filteredClassifier, evaluationActual,
+		 * instancesModel);
+		 * chooseLoggerType(instancesModel.classAttribute(), evaluationActual);
+		 * count.getAndIncrement();
+		 * logger.info("______END______");
+		 * } catch (Exception e) {
+		 * throw new RuntimeException(e);
+		 * }
+		 * 
+		 * }, executorService);
+		 * allfutures.add(execute);
+		 * }
+		 * CompletableFuture.allOf(allfutures.toArray(new
+		 * CompletableFuture[allfutures.size()])).join();
 		 */
 		for (int i = 0; i < partitions.size(); i++) {
 			logger.info("______START______");
@@ -238,7 +240,11 @@ public class MachineLearningImpl implements MachineLearning {
 			if (Boolean.TRUE.equals(flagFieldExists)) {
 				if (!classForPrediction.equalsIgnoreCase(name)) {
 					if (instances.attribute(i).isNominal()) {
-						newIstanceToAnalyze.setValue(instances.attribute(i), value.toString());
+						if (name.equalsIgnoreCase("id")) {
+							newIstanceToAnalyze.setMissing(instances.attribute(i));
+						} else {
+							newIstanceToAnalyze.setValue(instances.attribute(i), value.toString());
+						}
 					} else if (instances.attribute(i).isNumeric()) {
 						newIstanceToAnalyze.setValue(instances.attribute(i),
 								Double.parseDouble(value.toString()));

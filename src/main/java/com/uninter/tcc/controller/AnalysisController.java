@@ -24,9 +24,8 @@ public class AnalysisController {
 			@RequestParam(name = "classForPredict", required = true) String classPredict) {
 		ResponseEntity<String> result = null;
 		try {
-			Long cpfNumber = Long.valueOf(cpf);
 			result = new ResponseEntity<>(
-					creditAnalysis.creditScoreAnalysis(cpfNumber, idContext, sizeOfEachPage, classPredict),
+					creditAnalysis.creditScoreAnalysis(cpf, idContext, sizeOfEachPage, classPredict),
 					new HttpHeaders(),
 					HttpStatus.OK);
 		} catch (Exception e) {
@@ -44,9 +43,8 @@ public class AnalysisController {
 			@RequestParam(name = "classForPredict", required = true) String classPredict) {
 		ResponseEntity<String> result = null;
 		try {
-			Long cpfNumber = Long.valueOf(cpf);
 			result = new ResponseEntity<>(
-					creditAnalysis.behaviorScoreAnalysis(cpfNumber, idContext, sizeOfEachPage, classPredict),
+					creditAnalysis.behaviorScoreAnalysis(cpf, idContext, sizeOfEachPage, classPredict),
 					new HttpHeaders(),
 					HttpStatus.OK);
 		} catch (Exception e) {

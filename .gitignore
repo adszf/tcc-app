@@ -4,10 +4,15 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### APP MAP
+tmp/
+appmap.yml
+
 ### FILES OF INPUT AND OUTPUT FOLDERS IN PROJECT ###
 *.csv
 *.arff
 *.model
+
 
 ### STS ###
 .apt_generated

@@ -44,4 +44,59 @@ Configurações para rodar projeto no StandAlone:
 }
 ```
 
+# Diagrama de árvore da aplicação:
+``` markdown
+├── classifier
+├── input
+├── output
+├── src
+│   ├── main
+│   │   ├── java
+│   │   │   └── com
+│   │   │       └── uninter
+│   │   │           └── tcc
+│   │   │               ├── TccAppApplication.java
+│   │   │               ├── configuration
+│   │   │               │   ├── AsyncConfig.java
+│   │   │               │   ├── KafkaConsumerConfig.java
+│   │   │               │   ├── KafkaProducerConfig.java
+│   │   │               │   └── KafkaTopicConfig.java
+│   │   │               ├── controller
+│   │   │               │   ├── AnalysisController.java
+│   │   │               │   ├── KafkaController.java
+│   │   │               │   ├── MachineLearningController.java
+│   │   │               │   └── UtilsController.java
+│   │   │               ├── dto
+│   │   │               │   ├── analysis
+│   │   │               │   └── kafka
+│   │   │               │       └── send
+│   │   │               │           ├── SendDto.java
+│   │   │               │           └── SendRequestDto.java
+│   │   │               ├── model
+│   │   │               │   ├── BehaviorScoreEntity.java
+│   │   │               │   ├── ClassifierEntity.java
+│   │   │               │   ├── ClientBehaviorScoreEntity.java
+│   │   │               │   ├── ClientCreditScoreEntity.java
+│   │   │               │   └── CreditScoreEntity.java
+│   │   │               ├── repository
+│   │   │               │   ├── BehaviorScoreRepository.java
+│   │   │               │   ├── ClassifierRepository.java
+│   │   │               │   ├── ClientBehaviorScoreRepository.java
+│   │   │               │   ├── ClientCreditScoreRepository.java
+│   │   │               │   └── CreditScoreRepository.java
+│   │   │               ├── service
+│   │   │               │   ├── Analysis.java
+│   │   │               │   ├── AnalysisImpl.java
+│   │   │               │   ├── Kafka.java
+│   │   │               │   ├── KafkaImpl.java
+│   │   │               │   ├── MachineLearning.java
+│   │   │               │   └── MachineLearningImpl.java
+│   │   │               └── share
+│   │   │                   ├── ClassifierIdGenerator.java
+│   │   │                   ├── OSValidator.java
+│   │   │                   └── Utilities.java
+│   │   └── resources
+│   │       └── application.properties
+```
+
 #
